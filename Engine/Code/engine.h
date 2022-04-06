@@ -27,6 +27,8 @@ const VertexV3V2 vertices[] = {
     {glm::vec3(-0.5,0.5,0.0), glm::vec2(0.0,1.0)},
 };
 
+VertexV3V2 vertexs;
+
 const u16 indices[] = {
     0, 1, 2,
     0, 2, 3
@@ -60,6 +62,72 @@ enum Mode
     Mode_Count
 };
 
+// Model structs
+struct VertexBufferAttribute
+{
+    u8 location;
+    u8 componentCount;
+    u8 offset;
+};
+
+struct VertexBufferLayout
+{
+    std::vector<VertexBufferAttribute> attributes;
+    u8 stride;
+};
+
+struct Vao
+{
+    GLuint handle;
+    GLuint programHandle;
+};
+
+struct VertexShaderAttribute
+{
+    u8 location;
+    u8 componentCount;
+};
+
+struct VertexShaderLayout
+{
+    std::vector<VertexShaderAttribute> attributes;
+};
+
+// Model loading
+struct Model
+{
+    u32 meshId;
+    std::vector<u32> materialId;
+};
+
+struct Submesh
+{
+    VertexBufferLayout vertexBufferLayout;
+    std::vector<float> vertices;
+    std::vector<u32> indices;
+    u32 vertexOffset;
+    u32 indexOffset;
+    std::vector<Vao> vaos;
+};
+
+struct Mesh
+{
+    std::vector<Submesh> submeshes;
+    GLuint vertexBufferHandle;
+    GLuint indexBufferHandle;
+};
+
+struct Material
+{
+    std::string name;
+    vec3 albedo;
+    vec3 emmisive;
+    f32 smoothness;
+    u32 albedoTextureId;
+    u32 emissiveTextureId;
+    u32 specularTextureId;
+    u32 bumpTextureId;
+};
 struct App
 {
     // Loop
@@ -77,6 +145,9 @@ struct App
 
     std::vector<Texture>  textures;
     std::vector<Program>  programs;
+    std::vector<Mesh> meshes;
+    std::vector<Model> models;
+    std::vector<Material> materials;
 
     // program indices
     u32 texturedGeometryProgramIdx;

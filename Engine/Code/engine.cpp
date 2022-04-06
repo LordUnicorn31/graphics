@@ -52,6 +52,7 @@ GLuint CreateProgramFromSource(String programSource, const char* shaderName)
     glShaderSource(vshader, ARRAY_COUNT(vertexShaderSource), vertexShaderSource, vertexShaderLengths);
     glCompileShader(vshader);
     glGetShaderiv(vshader, GL_COMPILE_STATUS, &success);
+
     if (!success)
     {
         glGetShaderInfoLog(vshader, infoLogBufferSize, &infoLogSize, infoLogBuffer);
@@ -206,6 +207,13 @@ void Init(App* app)
     glEnableVertexAttribArray(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
     glBindVertexArray(0);
+
+    // create the vertex format
+    VertexBufferLayout vertexBufferLayout = {};
+    vertexBufferLayout.attributes.push_back(VertexBufferAttribute{ 0,3,0 });
+    vertexBufferLayout.attributes.push_back(VertexBufferAttribute{ 2,2,3 * sizeof(float) });
+    vertexBufferLayout.stride = 5 * sizeof(float);
+
 
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY");
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
