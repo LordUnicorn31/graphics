@@ -104,9 +104,24 @@
     <ClInclude Include="Code\assimp_model_loading.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="Code\Shaders.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="WorkingDir\shaders.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Code\cubemaps.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="WorkingDir\Shaders\skybox.frs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="WorkingDir\Shaders\cubemaps.frs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Code\skybox.vs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

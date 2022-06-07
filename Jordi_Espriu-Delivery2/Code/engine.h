@@ -8,8 +8,10 @@
 #include <glad/glad.h>
 #include "assimp_model_loading.h"
 #include <map>
+#include "Shaders.h"
 
 #include <glm/gtx/quaternion.hpp>
+
 
 typedef glm::vec2  vec2;
 typedef glm::vec3  vec3;
@@ -249,12 +251,12 @@ struct App
 
     std::vector<std::string> cubeFaces
     {
-        "front.jpg",
-        "back.jpg",
-        "top.jpg",
+        "front.png",
+        "back.png",
+        "top.png",
         "bottom.jpg",
-        "left.jpg",
-        "right.jpg"
+        "left.png",
+        "right.png"
     };
     
 
@@ -288,7 +290,14 @@ struct App
     bool showRelief;
     bool showCubeMap;
     unsigned int cubemapTexture;
+    unsigned int cubeTexture;
+
+    std::vector<Shader> vecShaders;
+   
 };
+
+
+
 
 u32 LoadTexture2D(App* app, const char* filepath);
 
@@ -311,8 +320,10 @@ void Render(App* app);
 void renderQuad();
 void RenderSphere();
 void RenderCube();
-void RenderCubeMap(App* app);
 
+// Skybox functions
+void RenderCubeMap(App* app);
 unsigned int loadCubeMap(std::vector<std::string> faces);
+void InitCubeMap(App* app);
 
 

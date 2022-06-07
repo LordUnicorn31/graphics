@@ -38,6 +38,7 @@
     <ClInclude Include="Code\buffer_management.h" />
     <ClInclude Include="Code\engine.h" />
     <ClInclude Include="Code\platform.h" />
+    <ClInclude Include="Code\Shaders.h" />
     <ClInclude Include="ThirdParty\glad\include\glad\glad.h" />
     <ClInclude Include="ThirdParty\glad\include\glad\khrplatform.h" />
     <ClInclude Include="ThirdParty\imgui-docking\imconfig.h" />
@@ -51,7 +52,11 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Code\cubemaps.vs" />
+    <None Include="Code\skybox.vs" />
     <None Include="WorkingDir\shaders.glsl" />
+    <None Include="WorkingDir\Shaders\cubemaps.frs" />
+    <None Include="WorkingDir\Shaders\skybox.frs" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

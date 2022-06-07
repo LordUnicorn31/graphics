@@ -12,10 +12,15 @@
 
 #include "assimp_model_loading.h"
 #include "buffer_management.h"
+#include "Shaders.h"
 
 #define BINDING(b) b
 
 bool mode;
+Shader cShader;
+Shader sShader;
+unsigned int cubeVAO;
+unsigned int skyVAO;
 
 GLuint CreateProgramFromSource(String programSource, const char* shaderName)
 {
@@ -239,6 +244,8 @@ void Init(App* app)
 
     InitModes(app);
 
+    InitCubeMap(app);
+
     InitBuffers(app);
 
     CreateEntities(app);
@@ -424,8 +431,19 @@ void Update(App* app)
 		direction.z = sin(glm::radians(app->camera.yaw)) * cos(glm::radians(app->camera.pitch));
 		app->camera.cameraFront = glm::normalize(direction);
 	}
-	else
-		app->camera.rotating = false;
+    if (app->input.keys[K_P] == ButtonState::BUTTON_PRESS)
+    {
+        app->camera.rotating = true;
+
+        if (app->input.keys[K_Z] == ButtonState::BUTTON_PRESS)
+        {
+            app->camera.pitch -= app->deltaTime * 20.f;
+        }
+    }
+    else
+    {
+        app->camera.rotating = false;
+    }
 
 }
 
@@ -478,9 +496,11 @@ void Render(App* app)
             MapBuffer(app->cBuffer, GL_WRITE_ONLY);
             app->globalParamsOffset = app->cBuffer.head;
 
+
             PushVec3(app->cBuffer, app->camera.cameraPos);
             PushUInt(app->cBuffer, app->lights.size());
             app->globalParamsSize = app->cBuffer.head - app->globalParamsOffset;
+
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, app->textures[app->toyDiffuseTexIdx].handle);
@@ -494,8 +514,11 @@ void Render(App* app)
             glBindTexture(GL_TEXTURE_2D, app->textures[app->toyHeightTexIdx].handle);
             glUniform1i(app->texturedMeshProgramIdx_RelieveHeight, 2);
 
-            if(app->showCubeMap)
-            RenderCubeMap(app);
+            if (app->showCubeMap)
+            {
+                RenderCubeMap(app);
+            }
+  
 
             glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uShowRelief"), app->showRelief);
             for (int i = 0; i < app->entities.size(); ++i)
@@ -567,6 +590,7 @@ void Render(App* app)
                 PushVec3(app->cBuffer, app->lights[i].position);
                 PushFloat(app->cBuffer, app->lights[i].intensity);
             }
+
             app->globalParamsSize = app->cBuffer.head - app->globalParamsOffset;
             glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globalParamsOffset, app->globalParamsSize);
             UnmapBuffer(app->cBuffer);
@@ -671,18 +695,15 @@ void CreateEntities(App* app)
 {
     app->model = LoadModel(app, "Cube/Plane.obj");
     app->entities.push_back(Entity(glm::mat4(1.f), app->model));
-    /*app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(5.f, 0.f, -4.f)), app->model));
-	app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-3.f, 0.f, -6.f)), app->model));*/
 
 
     app->lights.push_back(Light(LightType::DIRECTIONAL, vec3(0.8, 0.8, 0.8), vec3(0.0, -1.0, 1.0), vec3(4.f, 4.f, 0.f), 0.1)); 
-    /*app->lights.push_back(Light(LightType::DIRECTIONAL, vec3(-0.5, -0.07, 0.23), vec3(-1.0, -1.0, 0.0), vec3(-4.f, -4.f, 0.f), 0.2));*/
-    app->lights.push_back(Light(LightType::POINTT, vec3(0.0, 0.8, 0.9), vec3(0.4, -1.0, 1.0), vec3(2.f, -1.6f, 2.f), 0.7)); 
-    /*app->lights.push_back(Light(LightType::POINTT, vec3(1.0, 0.9, 0.1), vec3(0.3, -1.0, 1.0), vec3(-2.f, 1.f, 2.f), 0.8)); 
+    app->lights.push_back(Light(LightType::POINTT, vec3(0.0, 0.8, 0.9), vec3(0.4, -1.0, 2.0), vec3(2.f, 1.6f, 2.f), 0.7)); 
+    app->lights.push_back(Light(LightType::POINTT, vec3(1.0, 0.9, 0.1), vec3(0.3, -1.0, 1.0), vec3(-2.f, 1.f, 2.f), 0.8)); 
     app->lights.push_back(Light(LightType::POINTT, vec3(1.0, 0.52, -0.15), vec3(0.6, -1.0, 1.0), vec3(6.4f, -0.05f, -2.5f), 0.7));
     app->lights.push_back(Light(LightType::POINTT, vec3(1.0, 0.04, 1.0), vec3(0.2, -1.0, 1.0), vec3(-4.9f, 0.86f, -5.6f), 0.8));    
     app->lights.push_back(Light(LightType::POINTT, vec3(1.0, -0.5, 0.0), vec3(0.0, -1.0, 1.0), vec3(4.0f, 1.76f, -6.53f), 2.0));
-    app->lights.push_back(Light(LightType::POINTT, vec3(0.2, 0.8, 0.2), vec3(0.0, -1.0, 1.0), vec3(0.55f, 0.01f, -3.f), 0.9));*/
+    app->lights.push_back(Light(LightType::POINTT, vec3(0.2, 0.8, 0.2), vec3(0.0, -1.0, 1.0), vec3(0.55f, 0.01f, -3.f), 0.9));
 
 }
 
@@ -735,15 +756,6 @@ void InitModes(App* app)
         texturedMeshProgram.vertexInputLayout.attributes.push_back({ 3,3 });
         texturedMeshProgram.vertexInputLayout.attributes.push_back({ 4,3 });
 
-        app->cubeProgramIdx = LoadProgram(app,"shaders.glsl", "SHOW_CUBE");
-        Program& cubeProgram = app->programs[app->cubeProgramIdx];
-        cubeProgram.vertexInputLayout.attributes.push_back({ 0,3 });
-        cubeProgram.vertexInputLayout.attributes.push_back({ 1,3 });
-
-        app->skyBoxProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_SKY");
-        Program& skyProgram = app->programs[app->skyBoxProgramIdx];
-        skyProgram.vertexInputLayout.attributes.push_back({ 0,3 });
-
         app->lightsProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_LIGHT");
         Program& light = app->programs[app->lightsProgramIdx];
         app->texturedMeshProgramIdx_uPosition = glGetUniformLocation(light.handle, "uPositionTexture");
@@ -765,6 +777,8 @@ void InitModes(App* app)
     app->cubemapTexture = loadCubeMap(app->cubeFaces);
     glUseProgram(app->cubeProgramIdx);
     glUniform1i(app->cubeProgramIdx, app->showCubeMap);
+
+    RenderCubeMap(app);
 }
 
 void InitBuffers(App* app)
@@ -922,6 +936,82 @@ void RenderCube()
 
 void RenderCubeMap(App* app)
 {
+
+    cShader.use();
+    glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 view = app->camera.GetViewMatrix(app->displaySize);
+    glm::mat4 projection = glm::perspective(glm::radians(45.f), (float)800 / (float)600, 0.1f, 100.0f);
+    cShader.setMat4("model", model);
+    cShader.setMat4("view", view);
+    cShader.setMat4("projection", projection);
+    cShader.setVec3("cameraPos", app->camera.cameraPos);
+
+    glBindVertexArray(cubeVAO);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, app->cubemapTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+
+    // draw skybox as last
+    glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+    sShader.use();
+    view = glm::mat4(glm::mat3(app->camera.GetViewMatrix(app->displaySize)));
+    sShader.setMat4("view", view);
+    sShader.setMat4("projection", projection);
+    
+    // skybox cube
+    glBindVertexArray(skyVAO);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, app->cubemapTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
+
+}
+
+unsigned int loadCubeMap(std::vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+
+    for (unsigned int i = 0; i < faces.size(); ++i)
+    {
+        stbi_set_flip_vertically_on_load(false);
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        stbi_set_flip_vertically_on_load(true);
+        
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
+}
+
+void InitCubeMap(App* app)
+{
+    Shader cube("Shaders/cubemaps.vs", "Shaders/cubemaps.frs");
+    Shader sky("Shaders/skybox.vs", "Shaders/skybox.frs");
+
+    cShader = cube;
+    sShader = sky;
+
+    
     float cubeVertices[] = {
         // positions          // normals
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -1012,7 +1102,7 @@ void RenderCubeMap(App* app)
          1.0f, -1.0f,  1.0f
     };
 
-    unsigned int cubeVAO, cubeVBO;
+    unsigned int cubeVBO;
     glGenVertexArrays(1, &cubeVAO);
     glGenBuffers(1, &cubeVBO);
     glBindVertexArray(cubeVAO);
@@ -1023,7 +1113,7 @@ void RenderCubeMap(App* app)
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 
-    unsigned int skyVAO, skyVBO;
+    unsigned int skyVBO;
     glGenVertexArrays(1, &skyVAO);
     glGenBuffers(1, &skyVBO);
     glBindVertexArray(skyVAO);
@@ -1032,55 +1122,27 @@ void RenderCubeMap(App* app)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-    //Render
-    glBindVertexArray(cubeVAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, app->cubemapTexture);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glBindVertexArray(0);
 
-    glDepthFunc(GL_LEQUAL);
-    glUseProgram(app->skyBoxProgramIdx);
-
-    glBindVertexArray(skyVAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, app->cubemapTexture);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glBindVertexArray(0);
-    glDepthFunc(GL_LESS);
-
-}
-
-unsigned int loadCubeMap(std::vector<std::string> faces)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-
-    int width, height, nrChannels;
-
-    for (unsigned int i = 0; i < faces.size(); ++i)
+    std::vector<std::string> cubeFaces
     {
-        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-        
-        if (data)
-        {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-            stbi_image_free(data);
-        }
-        else
-        {
-            std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
-            stbi_image_free(data);
-        }
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        "top.jpg",
+        "bottom.jpg",
+        "left.jpg",
+        "right.jpg",
+        "front.jpg",
+        "back.jpg",
+    };
 
-    return textureID;
+    
+    app->cubemapTexture = loadCubeMap(cubeFaces);
+
+    cShader.use();
+    cShader.setInt("skybox",0);
+
+    sShader.use();
+    sShader.setInt("skybox", 0);
+
+
 }
 
 void renderQuad()
